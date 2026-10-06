@@ -11,6 +11,11 @@ final statsProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
   (ref) async => await ref.read(apiProvider).get('/me/stats') as Map<String, dynamic>,
 );
 
+final profileNoteProvider = FutureProvider.autoDispose<Map<String, dynamic>?>((ref) async {
+  final r = await ref.read(apiProvider).get('/me/profile') as Map<String, dynamic>;
+  return r['note'] as Map<String, dynamic>?;
+});
+
 final weaknessesProvider = FutureProvider.autoDispose<List<Weakness>>((ref) async {
   final list = await ref.read(apiProvider).get('/me/weaknesses') as List;
   return list.map((e) => Weakness.fromJson(e as Map<String, dynamic>)).toList();
@@ -45,6 +50,7 @@ class StatsPage extends ConsumerWidget {
             error: (e, _) => ErrorView(e),
           ),
           const SizedBox(height: 16),
+          const _CoachNote(),
           weak.when(
             data: (w) => _WeaknessList(w),
             loading: () => const SizedBox.shrink(),
@@ -186,6 +192,48 @@ class _WeaknessRow extends StatelessWidget {
               onPressed: () => context.go('/puzzles?mode=theme&theme=${w.key}'),
             )
           : null,
+    );
+  }
+}
+
+
+class _CoachNote extends ConsumerStatefulWidget {
+  const _CoachNote();
+
+  @override
+  ConsumerState<_CoachNote> createState() => _CoachNoteState();
+}
+
+class _CoachNoteState extends ConsumerState<_CoachNote> {
+  bool _busy = false;
+
+  Future<void> _refresh() async {
+    setState(() => _busy = true);
+    try {
+      await ref.read(apiProvider).post('/me/profile/refresh');
+      ref.invalidate(profileNoteProvider);
+    } catch (_) {
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final note = ref.watch(profileNoteProvider).value;
+    final t = Theme.of(context);
+    return Card(
+      child: ListTile(
+        leading: const Icon(Icons.school_outlined),
+        title: const Text('Nota del coach'),
+        subtitle: Text(note?['content'] as String? ?? 'Ancora nessuna nota: si aggiorna ogni notte in base ai tuoi errori.',
+            style: t.textTheme.bodyMedium),
+        trailing: IconButton(
+          tooltip: 'Aggiorna',
+          onPressed: _busy ? null : _refresh,
+          icon: _busy ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
+        ),
+      ),
     );
   }
 }

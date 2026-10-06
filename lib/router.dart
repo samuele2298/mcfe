@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'api/models.dart';
+import 'features/analysis/analysis_page.dart';
 import 'features/auth/login_page.dart';
 import 'features/games/games_page.dart';
 import 'features/games/review_page.dart';
@@ -29,7 +30,8 @@ final routerProvider = Provider<GoRouter>((ref) {
         return loc == '/splash' ? null : Uri(path: '/splash', queryParameters: {'from': state.uri.toString()}).toString();
       }
       final loggedIn = a.value != null;
-      final from = state.uri.queryParameters['from'];
+      // il parametro arriva decodificato: gli spazi (es. in una FEN) vanno ricodificati
+      final from = state.uri.queryParameters['from']?.replaceAll(' ', '%20');
       if (!loggedIn) {
         if (loc == '/login') return null;
         return Uri(path: '/login', queryParameters: {
@@ -59,6 +61,7 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           GoRoute(path: '/storm', builder: (_, __) => const StormPage()),
           GoRoute(path: '/stats', builder: (_, __) => const StatsPage()),
+          GoRoute(path: '/analysis', builder: (_, s) => AnalysisPage(key: ValueKey(s.uri.toString()), initialFen: fenFromUrl(s.uri.queryParameters['fen']))),
           GoRoute(path: '/games', builder: (_, __) => const GamesPage()),
           GoRoute(path: '/games/:id', builder: (_, s) => ReviewPage(key: ValueKey(s.pathParameters['id']), gameId: s.pathParameters['id']!)),
           GoRoute(path: '/play', builder: (_, __) => const PlayPage(key: ValueKey('new'))),
@@ -69,6 +72,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     ],
   );
 });
+
+/// Nelle URL la FEN usa "_" al posto degli spazi (gli spazi si perdono nell'hash del browser).
+String fenToUrl(String fen) => fen.replaceAll(' ', '_');
+String? fenFromUrl(String? v) => v?.replaceAll('_', ' ');
 
 /// Rotte aggiunte dalle fasi successive.
 final List<RouteBase> extraRoutes = [];

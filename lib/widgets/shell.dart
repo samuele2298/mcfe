@@ -18,6 +18,7 @@ const navItems = [
   NavItem('/storm', Icons.bolt_outlined, 'Storm'),
   NavItem('/play', Icons.sports_esports_outlined, 'Gioca'),
   NavItem('/games', Icons.history, 'Partite'),
+  NavItem('/analysis', Icons.manage_search, 'Analisi'),
   NavItem('/stats', Icons.insights_outlined, 'Statistiche'),
 ];
 
