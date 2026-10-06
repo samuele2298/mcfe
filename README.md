@@ -1,6 +1,32 @@
-# mcfe — frontend Flutter web
+# mcfe — frontend Chess Mentor (Flutter web)
 
 Specifica del progetto: [SPEC.md](https://github.com/samuele2298/mcbe/blob/main/SPEC.md).
+Il backend è in [mcbe](https://github.com/samuele2298/mcbe).
 
-Sarà creato nella Fase 1 (scacchiera, puzzle per tema, Storm).
-Parla con l'API di `mcbe` (in sviluppo `http://localhost:3000`, in produzione `/api` dietro nginx).
+## Sviluppo
+
+Requisiti: Flutter ≥ 3.35, backend `mcbe` in esecuzione su `http://localhost:3000`
+(con `CORS_ORIGINS=http://localhost:8080` nel suo `.env`).
+
+```bash
+flutter pub get
+flutter run -d chrome --web-port 8080
+flutter test
+```
+
+## Build di produzione
+
+L'app gira dietro lo stesso nginx dell'API, che la espone sotto `/api`:
+
+```bash
+flutter build web --release --dart-define=API_URL=/api
+# copiare build/web/ nella root nginx (vedi mcbe/deploy/nginx.conf.example)
+```
+
+## Note tecniche
+
+- La scacchiera è un widget proprio (`lib/widgets/board.dart`) con la logica del pacchetto
+  `chess` (port di chess.js). Le librerie Lichess `chessground`/`dartchess` usano interi a
+  64 bit e non compilano in JavaScript per il web.
+- Pezzi: set *cburnett* di Colin M.L. Burnett (CC BY-SA 3.0), presi dagli asset di
+  chessground/Lichess.
