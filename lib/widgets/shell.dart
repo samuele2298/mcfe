@@ -16,6 +16,7 @@ const navItems = [
   NavItem('/', Icons.home_outlined, 'Home'),
   NavItem('/puzzles', Icons.extension_outlined, 'Puzzle'),
   NavItem('/storm', Icons.bolt_outlined, 'Storm'),
+  NavItem('/play', Icons.sports_esports_outlined, 'Gioca'),
   NavItem('/stats', Icons.insights_outlined, 'Statistiche'),
 ];
 

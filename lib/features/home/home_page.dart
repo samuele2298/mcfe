@@ -75,5 +75,6 @@ class HomePage extends ConsumerWidget {
 const homeActions = <(IconData, String, String, String)>[
   (Icons.extension, 'Puzzle', 'Per tema, punti deboli o ripasso', '/puzzles'),
   (Icons.bolt, 'Storm', '3 minuti di tattica a tempo', '/storm'),
+  (Icons.sports_esports, 'Gioca', 'Contro il computer, con analisi', '/play'),
   (Icons.insights, 'Statistiche', 'Rating e punti deboli', '/stats'),
 ];

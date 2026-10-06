@@ -102,3 +102,144 @@ class StatChange {
   final int before;
   final int after;
 }
+
+class GameState {
+  GameState({
+    required this.id,
+    required this.startFen,
+    required this.fen,
+    required this.moves,
+    required this.sans,
+    required this.userWhite,
+    required this.mode,
+    required this.opponentElo,
+    required this.result,
+    required this.termination,
+    required this.whiteToMove,
+    required this.analysisStatus,
+    required this.adaptiveTarget,
+    required this.awaitingDecision,
+  });
+
+  factory GameState.fromJson(Map<String, dynamic> j) => GameState(
+        id: j['id'] as String,
+        startFen: j['startFen'] as String,
+        fen: j['fen'] as String,
+        moves: (j['moves'] as List).cast<String>(),
+        sans: (j['sans'] as List).cast<String>(),
+        userWhite: j['userColor'] == 'white',
+        mode: j['mode'] as String,
+        opponentElo: j['opponentElo'] as int?,
+        result: j['result'] as String?,
+        termination: j['termination'] as String?,
+        whiteToMove: j['turn'] == 'white',
+        analysisStatus: j['analysisStatus'] as String,
+        adaptiveTarget: j['adaptiveTarget'] as String?,
+        awaitingDecision: j['awaitingDecision'] as bool? ?? false,
+      );
+
+  final String id;
+  final String startFen;
+  final String fen;
+  final List<String> moves;
+  final List<String> sans;
+  final bool userWhite;
+  final String mode;
+  final int? opponentElo;
+  final String? result;
+  final String? termination;
+  final bool whiteToMove;
+  final String analysisStatus;
+  final String? adaptiveTarget;
+  final bool awaitingDecision;
+
+  bool get finished => result != null;
+  bool get userToMove => !finished && whiteToMove == userWhite && !awaitingDecision;
+
+  /// Esito dal punto di vista dell'utente: 1 vittoria, 0.5 patta, 0 sconfitta.
+  double? get userScore => switch (result) {
+        '1-0' => userWhite ? 1 : 0,
+        '0-1' => userWhite ? 0 : 1,
+        '1/2-1/2' => 0.5,
+        _ => null,
+      };
+}
+
+class Diagnosis {
+  Diagnosis(this.category, this.motif, this.phase, this.reasons);
+  factory Diagnosis.fromJson(Map<String, dynamic> j) => Diagnosis(
+        j['category'] as String,
+        j['motif'] as String?,
+        j['phase'] as String,
+        (j['reasons'] as List).cast<String>(),
+      );
+  final String category;
+  final String? motif;
+  final String phase;
+  final List<String> reasons;
+}
+
+class MoveFeedback {
+  MoveFeedback({
+    required this.uci,
+    required this.san,
+    required this.classification,
+    required this.winPctLoss,
+    required this.evalBefore,
+    required this.evalAfter,
+    this.bestUci,
+    this.bestSan,
+    this.diagnosis,
+  });
+
+  factory MoveFeedback.fromJson(Map<String, dynamic> j) => MoveFeedback(
+        uci: j['uci'] as String,
+        san: j['san'] as String,
+        classification: j['classification'] as String,
+        winPctLoss: (j['winPctLoss'] as num).toDouble(),
+        evalBefore: j['evalBefore'] as int,
+        evalAfter: j['evalAfter'] as int,
+        bestUci: j['bestUci'] as String?,
+        bestSan: j['bestSan'] as String?,
+        diagnosis: j['diagnosis'] == null ? null : Diagnosis.fromJson(j['diagnosis'] as Map<String, dynamic>),
+      );
+
+  final String uci;
+  final String san;
+  final String classification;
+  final double winPctLoss;
+  final int evalBefore;
+  final int evalAfter;
+  final String? bestUci;
+  final String? bestSan;
+  final Diagnosis? diagnosis;
+
+  bool get isBad => classification == 'mistake' || classification == 'blunder';
+}
+
+const classificationLabels = {
+  'best': 'Mossa migliore',
+  'ok': 'Buona mossa',
+  'inaccuracy': 'Imprecisione',
+  'mistake': 'Errore',
+  'blunder': 'Grave errore',
+};
+
+const mistakeLabels = {
+  'missed_mate': 'Matto mancato',
+  'missed_tactic': 'Tattica mancata',
+  'hanging_piece': 'Pezzo lasciato in presa',
+  'allowed_tactic': 'Tattica concessa',
+  'endgame_technique': 'Tecnica di finale',
+  'opening_deviation': 'Imprecisione in apertura',
+  'positional': 'Errore posizionale',
+};
+
+String formatEval(int cpWhite) {
+  if (cpWhite.abs() >= 9000) {
+    final n = 10000 - cpWhite.abs();
+    return '${cpWhite > 0 ? '' : '-'}M$n';
+  }
+  final v = cpWhite / 100;
+  return '${v > 0 ? '+' : ''}${v.toStringAsFixed(1)}';
+}
