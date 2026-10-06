@@ -71,12 +71,16 @@ class _StatsHeader extends StatelessWidget {
     final history = (s['history'] as List).cast<Map<String, dynamic>>();
     final t = Theme.of(context);
     return Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
-      Wrap(spacing: 12, runSpacing: 12, children: [
-        _Tile('Rating puzzle', '${s['ratingPuzzle']}', '± ${s['ratingRd']}'),
-        _Tile('Risolti', '${s['puzzlesSolved']}', 'sbagliati ${s['puzzlesFailed']}'),
-        _Tile('Record Storm', '${s['stormBest']}', 'puzzle in 3 minuti'),
-        _Tile('Da ripassare', '${s['reviewDue']}', 'ripetizione spaziata'),
-      ]),
+      LayoutBuilder(builder: (context, c) {
+        // due tessere per riga su telefono, quattro su schermi larghi
+        final w = c.maxWidth < 500 ? (c.maxWidth - 8) / 2 : 200.0;
+        return Wrap(spacing: 8, runSpacing: 8, children: [
+          _Tile('Rating puzzle', '${s['ratingPuzzle']}', '± ${s['ratingRd']}', width: w),
+          _Tile('Risolti', '${s['puzzlesSolved']}', 'sbagliati ${s['puzzlesFailed']}', width: w),
+          _Tile('Record Storm', '${s['stormBest']}', 'puzzle in 3 minuti', width: w),
+          _Tile('Da ripassare', '${s['reviewDue']}', 'ripetizione spaziata', width: w),
+        ]);
+      }),
       if (history.length >= 2) ...[
         const SectionTitle('Andamento rating (90 giorni)'),
         SizedBox(
@@ -109,16 +113,17 @@ class _StatsHeader extends StatelessWidget {
 }
 
 class _Tile extends StatelessWidget {
-  const _Tile(this.title, this.value, this.subtitle);
+  const _Tile(this.title, this.value, this.subtitle, {this.width = 200});
   final String title;
   final String value;
   final String subtitle;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
     return SizedBox(
-      width: 200,
+      width: width,
       child: Card(
         child: Padding(
           padding: const EdgeInsets.all(16),

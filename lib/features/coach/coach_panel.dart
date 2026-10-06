@@ -127,9 +127,10 @@ class _CoachSheetState extends ConsumerState<CoachSheet> {
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
       child: LayoutBuilder(builder: (context, c) {
         final wide = c.maxWidth >= 700;
+        final side = wide ? 300.0 : (c.maxWidth < 300 ? c.maxWidth : (c.maxHeight * 0.4).clamp(200.0, 300.0));
         final board = SizedBox(
           width: wide ? 300 : double.infinity,
-          height: 300,
+          height: side,
           child: ChessBoardView(
             position: boardPos,
             whiteBottom: position.whiteToMove,

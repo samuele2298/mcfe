@@ -106,10 +106,9 @@ class _AnalysisPageState extends ConsumerState<AnalysisPage> {
                   IconButton(onPressed: () => setState(() => _whiteBottom = !_whiteBottom), icon: const Icon(Icons.swap_vert), tooltip: 'Gira la scacchiera'),
                 ]),
                 const SizedBox(height: 8),
-                Row(children: [
+                Wrap(spacing: 4, runSpacing: 4, crossAxisAlignment: WrapCrossAlignment.center, children: [
                   IconButton(onPressed: _cursor > 0 ? () => setState(() { _cursor--; _analysis = null; }) : null, icon: const Icon(Icons.chevron_left)),
                   IconButton(onPressed: _cursor < _moves.length ? () => setState(() { _cursor++; _analysis = null; }) : null, icon: const Icon(Icons.chevron_right)),
-                  const Spacer(),
                   FilledButton.tonalIcon(onPressed: _loading ? null : _analyse, icon: const Icon(Icons.memory), label: const Text('Motore')),
                   const SizedBox(width: 8),
                   CoachButton(

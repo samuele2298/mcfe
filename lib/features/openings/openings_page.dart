@@ -136,7 +136,7 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
                 ),
                 if (_moves.isNotEmpty)
                   MoveList(sans: [for (var i = 0; i < _moves.length; i++) positions[i].san(_moves[i]) ?? _moves[i]]),
-                Row(children: [
+                Wrap(crossAxisAlignment: WrapCrossAlignment.center, children: [
                   IconButton(
                     tooltip: 'Indietro',
                     onPressed: _moves.isEmpty ? null : () { setState(_moves.removeLast); _load(); },
@@ -148,7 +148,6 @@ class _ExploreViewState extends ConsumerState<ExploreView> {
                     onPressed: () { setState(_moves.clear); _load(); },
                     icon: const Icon(Icons.restart_alt),
                   ),
-                  const Spacer(),
                   if (_moves.isNotEmpty) FilledButton.tonalIcon(onPressed: _save, icon: const Icon(Icons.bookmark_add), label: const Text('Salva linea')),
                 ]),
               ]),

@@ -8,15 +8,19 @@ class PageBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // su telefono margini stretti: ogni pixel serve alla scacchiera
+    final pad = MediaQuery.sizeOf(context).width < 600 ? 8.0 : 16.0;
     return Align(
       alignment: Alignment.topCenter,
       child: ConstrainedBox(
         constraints: BoxConstraints(maxWidth: maxWidth),
-        child: Padding(padding: const EdgeInsets.all(16), child: child),
+        child: Padding(padding: EdgeInsets.all(pad), child: child),
       ),
     );
   }
 }
+
+bool isPhone(BuildContext context) => MediaQuery.sizeOf(context).width < 600;
 
 /// Layout scacchiera + pannello: affiancati su schermi larghi, impilati su stretti.
 class BoardLayout extends StatelessWidget {
@@ -38,11 +42,14 @@ class BoardLayout extends StatelessWidget {
           ],
         );
       }
-      return ListView(
+      // schermi stretti: scacchiera fissa in alto e pannello che scorre sotto
+      // (niente lista che scorre sopra la scacchiera: il trascinamento dei pezzi resta affidabile)
+      final boardSize = c.maxWidth.clamp(0.0, c.maxHeight.isFinite ? c.maxHeight * 0.62 : c.maxWidth);
+      return Column(
         children: [
-          AspectRatio(aspectRatio: 1, child: board),
-          const SizedBox(height: 16),
-          panel,
+          SizedBox(width: boardSize, height: boardSize, child: board),
+          const SizedBox(height: 8),
+          Expanded(child: SingleChildScrollView(child: panel)),
         ],
       );
     });

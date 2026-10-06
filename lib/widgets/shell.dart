@@ -5,20 +5,23 @@ import 'package:go_router/go_router.dart';
 import '../state/providers.dart';
 
 class NavItem {
-  const NavItem(this.path, this.icon, this.label, {this.adminOnly = false});
+  const NavItem(this.path, this.icon, this.label, {this.adminOnly = false, this.primary = false});
   final String path;
   final IconData icon;
   final String label;
   final bool adminOnly;
+
+  /// voci sempre visibili nella barra in basso su telefono
+  final bool primary;
 }
 
 const navItems = [
-  NavItem('/', Icons.home_outlined, 'Home'),
-  NavItem('/puzzles', Icons.extension_outlined, 'Puzzle'),
+  NavItem('/', Icons.home_outlined, 'Home', primary: true),
+  NavItem('/puzzles', Icons.extension_outlined, 'Puzzle', primary: true),
   NavItem('/storm', Icons.bolt_outlined, 'Storm'),
-  NavItem('/play', Icons.sports_esports_outlined, 'Gioca'),
+  NavItem('/play', Icons.sports_esports_outlined, 'Gioca', primary: true),
   NavItem('/openings', Icons.menu_book_outlined, 'Aperture'),
-  NavItem('/games', Icons.history, 'Partite'),
+  NavItem('/games', Icons.history, 'Partite', primary: true),
   NavItem('/analysis', Icons.manage_search, 'Analisi'),
   NavItem('/stats', Icons.insights_outlined, 'Statistiche'),
 ];
@@ -70,14 +73,48 @@ class AppShell extends ConsumerWidget {
         ]),
       );
     }
+    // telefono: 4 voci principali + "Altro" con le restanti
+    final primary = items.where((i) => i.primary).toList();
+    final more = items.where((i) => !i.primary).toList();
+    final current = items[selected];
+    final barIndex = current.primary ? primary.indexOf(current) : primary.length;
     return Scaffold(
       appBar: appBar,
-      body: child,
+      body: SafeArea(top: false, child: child),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: selected,
-        onDestinationSelected: (i) => context.go(items[i].path),
+        height: 64,
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        selectedIndex: barIndex,
+        onDestinationSelected: (i) {
+          if (i < primary.length) {
+            context.go(primary[i].path);
+            return;
+          }
+          showModalBottomSheet<void>(
+            context: context,
+            showDragHandle: true,
+            builder: (ctx) => SafeArea(
+              child: Column(mainAxisSize: MainAxisSize.min, children: [
+                for (final m in more)
+                  ListTile(
+                    leading: Icon(m.icon),
+                    title: Text(m.label),
+                    selected: m == current,
+                    onTap: () {
+                      Navigator.pop(ctx);
+                      context.go(m.path);
+                    },
+                  ),
+              ]),
+            ),
+          );
+        },
         destinations: [
-          for (final i in items) NavigationDestination(icon: Icon(i.icon), label: i.label),
+          for (final i in primary) NavigationDestination(icon: Icon(i.icon), label: i.label),
+          NavigationDestination(
+            icon: const Icon(Icons.menu),
+            label: current.primary ? 'Altro' : current.label,
+          ),
         ],
       ),
     );

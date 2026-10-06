@@ -48,27 +48,28 @@ class HomePage extends ConsumerWidget {
         const SizedBox(height: 8),
         const _PlanCard(),
         const SizedBox(height: 8),
-        Wrap(spacing: 12, runSpacing: 12, children: [
+        LayoutBuilder(builder: (context, c) => Wrap(spacing: 8, runSpacing: 8, children: [
           for (final a in homeActions)
             SizedBox(
-              width: 250,
+              // telefono: due card per riga
+              width: c.maxWidth < 560 ? (c.maxWidth - 8) / 2 : 250,
               child: Card(
                 clipBehavior: Clip.antiAlias,
                 child: InkWell(
                   onTap: () => context.go(a.$4),
                   child: Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.all(14),
                     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Icon(a.$1, size: 36, color: t.colorScheme.primary),
+                      Icon(a.$1, size: 32, color: t.colorScheme.primary),
                       const SizedBox(height: 8),
                       Text(a.$2, style: t.textTheme.titleMedium),
-                      Text(a.$3, style: t.textTheme.bodySmall),
+                      Text(a.$3, style: t.textTheme.bodySmall, maxLines: 2, overflow: TextOverflow.ellipsis),
                     ]),
                   ),
                 ),
               ),
             ),
-        ]),
+        ])),
       ]),
     );
   }
