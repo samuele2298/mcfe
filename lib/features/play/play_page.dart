@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../api/client.dart';
@@ -13,8 +14,9 @@ import '../coach/coach_panel.dart';
 
 /// Partita contro il computer: normale (analisi a fine partita) o allenamento (feedback a ogni mossa).
 class PlayPage extends ConsumerStatefulWidget {
-  const PlayPage({super.key, this.gameId});
+  const PlayPage({super.key, this.gameId, this.adaptive = false});
   final String? gameId;
+  final bool adaptive;
 
   @override
   ConsumerState<PlayPage> createState() => _PlayPageState();
@@ -31,7 +33,8 @@ class _PlayPageState extends ConsumerState<PlayPage> {
   // impostazioni nuova partita
   String _color = 'white';
   double _elo = 1200;
-  String _mode = 'normal';
+  late String _mode = widget.adaptive ? 'adaptive' : 'normal';
+  Map<String, dynamic>? _opportunity;
 
   @override
   void initState() {
@@ -67,11 +70,19 @@ class _PlayPageState extends ConsumerState<PlayPage> {
       });
 
   Future<void> _start() => _run(() async {
-        final g = GameState.fromJson(await ref.read(apiProvider).post('/play/start', {
-          'color': _color,
-          'elo': _elo.round(),
-          'mode': _mode,
-        }) as Map<String, dynamic>);
+        final api = ref.read(apiProvider);
+        GameState g;
+        if (_mode == 'adaptive') {
+          final r = await api.post('/play/adaptive', {'color': _color}) as Map<String, dynamic>;
+          g = GameState.fromJson(r['state'] as Map<String, dynamic>);
+          ref.read(adaptivePlanProvider.notifier).state = {g.id: r['plan'] as Map<String, dynamic>};
+        } else {
+          g = GameState.fromJson(await api.post('/play/start', {
+            'color': _color,
+            'elo': _elo.round(),
+            'mode': _mode,
+          }) as Map<String, dynamic>);
+        }
         setState(() {
           _game = g;
           _feedback = null;
@@ -91,6 +102,7 @@ class _PlayPageState extends ConsumerState<PlayPage> {
       setState(() {
         _game = GameState.fromJson(res['state'] as Map<String, dynamic>);
         _feedback = res['feedback'] == null ? null : MoveFeedback.fromJson(res['feedback'] as Map<String, dynamic>);
+        _opportunity = res['opportunity'] as Map<String, dynamic>?;
       });
     });
   }
@@ -153,8 +165,10 @@ class _PlayPageState extends ConsumerState<PlayPage> {
                 onSelectionChanged: (s) => setState(() => _color = s.first),
               ),
               const SizedBox(height: 16),
-              Text('Forza del computer: ${_elo.round()} Elo'),
-              Slider(value: _elo, min: 600, max: 2800, divisions: 22, label: '${_elo.round()}', onChanged: (v) => setState(() => _elo = v)),
+              if (_mode != 'adaptive') ...[
+                Text('Forza del computer: ${_elo.round()} Elo'),
+                Slider(value: _elo, min: 600, max: 2800, divisions: 22, label: '${_elo.round()}', onChanged: (v) => setState(() => _elo = v)),
+              ],
               const SizedBox(height: 8),
               const Text('Modalità'),
               const SizedBox(height: 4),
@@ -162,15 +176,19 @@ class _PlayPageState extends ConsumerState<PlayPage> {
                 segments: const [
                   ButtonSegment(value: 'normal', label: Text('Partita'), icon: Icon(Icons.sports_esports)),
                   ButtonSegment(value: 'training', label: Text('Allenamento'), icon: Icon(Icons.school)),
+                  ButtonSegment(value: 'adaptive', label: Text('Adattiva'), icon: Icon(Icons.track_changes)),
                 ],
                 selected: {_mode},
                 onSelectionChanged: (s) => setState(() => _mode = s.first),
               ),
               const SizedBox(height: 8),
               Text(
-                _mode == 'training'
-                    ? 'Dopo ogni mossa vedi subito se era un errore e puoi riprovare.'
-                    : 'Nessun aiuto durante la partita: alla fine trovi l\'analisi completa.',
+                switch (_mode) {
+                  'training' => 'Dopo ogni mossa vedi subito se era un errore e puoi riprovare.',
+                  'adaptive' =>
+                    'Il computer sceglie posizioni, aperture e occasioni sui tuoi punti deboli; la forza si regola sul tuo livello.',
+                  _ => 'Nessun aiuto durante la partita: alla fine trovi l\'analisi completa.',
+                },
                 style: t.textTheme.bodySmall,
               ),
               if (_error != null) ...[
@@ -205,12 +223,18 @@ class _PlayPageState extends ConsumerState<PlayPage> {
           ]),
           const SizedBox(height: 4),
           Text(
-            '${g.mode == 'training' ? 'Allenamento' : g.mode == 'adaptive' ? 'Adattiva' : 'Partita'} · Stockfish ${g.opponentElo ?? ''}'
-            '${g.adaptiveTarget != null ? ' · obiettivo: ${g.adaptiveTarget}' : ''}',
+            '${g.mode == 'training' ? 'Allenamento' : g.mode == 'adaptive' ? 'Adattiva' : 'Partita'} · Stockfish ${g.opponentElo ?? ''}',
             style: t.textTheme.bodySmall,
           ),
           if (_error != null) Text('$_error', style: TextStyle(color: t.colorScheme.error)),
+          if (ref.watch(adaptivePlanProvider)[g.id] case final plan?)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text('Obiettivo: ${plan['targetLabel']} (livello ${plan['level']}). ${plan['description']}',
+                  style: t.textTheme.bodySmall),
+            ),
           const Divider(height: 24),
+          if (_opportunity != null) _OpportunityCard(_opportunity!),
           if (fb != null) _FeedbackCard(fb),
           if (g.awaitingDecision) ...[
             const SizedBox(height: 8),
@@ -273,6 +297,37 @@ class _PlayPageState extends ConsumerState<PlayPage> {
     final s = g.userScore;
     final head = s == 1 ? 'Hai vinto' : s == 0 ? 'Hai perso' : 'Patta';
     return '$head ($why)';
+  }
+}
+
+/// Piano della partita adattiva appena creata (per mostrarne l'obiettivo).
+final adaptivePlanProvider = StateProvider<Map<String, Map<String, dynamic>>>((ref) => {});
+
+const motifLabels = {
+  'fork': 'forchetta',
+  'pin': 'inchiodatura',
+  'skewer': 'infilata',
+  'hangingPiece': 'pezzo in presa',
+  'mate': 'matto',
+};
+
+class _OpportunityCard extends StatelessWidget {
+  const _OpportunityCard(this.o);
+  final Map<String, dynamic> o;
+
+  @override
+  Widget build(BuildContext context) {
+    final found = o['found'] == true;
+    final motif = motifLabels[o['motif']] ?? o['motif'];
+    return Card(
+      color: found ? Colors.green.withValues(alpha: 0.2) : Theme.of(context).colorScheme.errorContainer,
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Text(found
+            ? 'Occasione colta: hai trovato la $motif!'
+            : 'Occasione mancata: c\'era una $motif con ${(o['expectedSan'] as List).join(' o ')}.'),
+      ),
+    );
   }
 }
 

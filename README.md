@@ -3,6 +3,13 @@
 Specifica del progetto: [SPEC.md](https://github.com/samuele2298/mcbe/blob/main/SPEC.md).
 Il backend è in [mcbe](https://github.com/samuele2298/mcbe).
 
+## Sezioni
+
+Home con piano del giorno · Puzzle (mix, tema, punti deboli, ripasso) · Storm · Gioca
+(partita, allenamento, adattiva) · Aperture (esplora, repertorio, allenamento delle linee) ·
+Partite (archivio, import Lichess/Chess.com, revisione con grafico ed errori) · Analisi
+(motore + coach) · Statistiche (rating, punti deboli, nota del coach).
+
 ## Sviluppo
 
 Requisiti: Flutter ≥ 3.35, backend `mcbe` in esecuzione su `http://localhost:3000`

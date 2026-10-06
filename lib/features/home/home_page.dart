@@ -46,6 +46,8 @@ class HomePage extends ConsumerWidget {
             ),
           ),
         const SizedBox(height: 8),
+        const _PlanCard(),
+        const SizedBox(height: 8),
         Wrap(spacing: 12, runSpacing: 12, children: [
           for (final a in homeActions)
             SizedBox(
@@ -72,10 +74,65 @@ class HomePage extends ConsumerWidget {
   }
 }
 
+final planProvider = FutureProvider.autoDispose<Map<String, dynamic>>(
+  (ref) async => await ref.read(apiProvider).get('/me/plan') as Map<String, dynamic>,
+);
+
+/// Piano della settimana: le attività di oggi e, a richiesta, quelle dei giorni successivi.
+class _PlanCard extends ConsumerWidget {
+  const _PlanCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final plan = ref.watch(planProvider).value;
+    if (plan == null) return const SizedBox.shrink();
+    final t = Theme.of(context);
+    final days = (plan['days'] as List).cast<Map<String, dynamic>>();
+    final focus = (plan['focus'] as List).cast<String>();
+    Widget taskTile(Map<String, dynamic> task) => ListTile(
+          dense: true,
+          leading: const Icon(Icons.check_box_outline_blank, size: 20),
+          title: Text(task['label'] as String),
+          subtitle: Text(task['detail'] as String),
+          onTap: () => context.go(task['link'] as String),
+        );
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text('Piano di oggi', style: t.textTheme.titleMedium),
+          ),
+          if (focus.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text('Focus della settimana: ${focus.join(', ')}', style: t.textTheme.bodySmall),
+            ),
+          for (final task in (days.first['tasks'] as List).cast<Map<String, dynamic>>()) taskTile(task),
+          ExpansionTile(
+            title: const Text('Resto della settimana'),
+            children: [
+              for (final d in days.skip(1)) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                  child: Text(d['weekday'] as String, style: t.textTheme.labelLarge),
+                ),
+                for (final task in (d['tasks'] as List).cast<Map<String, dynamic>>()) taskTile(task),
+              ],
+            ],
+          ),
+        ]),
+      ),
+    );
+  }
+}
+
 const homeActions = <(IconData, String, String, String)>[
   (Icons.extension, 'Puzzle', 'Per tema, punti deboli o ripasso', '/puzzles'),
   (Icons.bolt, 'Storm', '3 minuti di tattica a tempo', '/storm'),
   (Icons.sports_esports, 'Gioca', 'Contro il computer, con analisi', '/play'),
+  (Icons.menu_book, 'Aperture', 'Esplora, salva e ripassa il repertorio', '/openings'),
   (Icons.manage_search, 'Analisi e coach', 'Motore, fatti e spiegazioni', '/analysis'),
   (Icons.insights, 'Statistiche', 'Rating e punti deboli', '/stats'),
 ];

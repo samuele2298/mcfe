@@ -1,7 +1,15 @@
 // Modelli JSON dell'API mcbe.
 
 class User {
-  User({required this.id, required this.email, required this.role, this.displayName, required this.ratingPuzzle});
+  User({
+    required this.id,
+    required this.email,
+    required this.role,
+    this.displayName,
+    required this.ratingPuzzle,
+    this.lichessUsername,
+    this.chesscomUsername,
+  });
 
   factory User.fromJson(Map<String, dynamic> j) => User(
         id: j['id'] as String,
@@ -9,6 +17,8 @@ class User {
         role: j['role'] as String,
         displayName: j['displayName'] as String?,
         ratingPuzzle: j['ratingPuzzle'] as int,
+        lichessUsername: j['lichessUsername'] as String?,
+        chesscomUsername: j['chesscomUsername'] as String?,
       );
 
   final String id;
@@ -16,6 +26,8 @@ class User {
   final String role;
   final String? displayName;
   final int ratingPuzzle;
+  final String? lichessUsername;
+  final String? chesscomUsername;
 
   bool get isAdmin => role == 'admin';
   String get name => displayName?.isNotEmpty == true ? displayName! : email.split('@').first;

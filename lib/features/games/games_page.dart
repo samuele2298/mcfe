@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../api/client.dart';
 import '../../state/providers.dart';
 import '../../widgets/common.dart';
 
@@ -26,6 +27,12 @@ class GamesPage extends ConsumerWidget {
           child: ListView(children: [
             Row(children: [
               Expanded(child: Text('Le tue partite', style: Theme.of(context).textTheme.headlineSmall)),
+              OutlinedButton.icon(
+                onPressed: () => showDialog<void>(context: context, builder: (_) => const ImportDialog()).then((_) => ref.invalidate(gamesProvider)),
+                icon: const Icon(Icons.download),
+                label: const Text('Importa'),
+              ),
+              const SizedBox(width: 8),
               FilledButton.icon(onPressed: () => context.go('/play'), icon: const Icon(Icons.add), label: const Text('Nuova')),
             ]),
             const SizedBox(height: 12),
@@ -74,6 +81,90 @@ class _GameTile extends StatelessWidget {
         trailing: const Icon(Icons.chevron_right),
         onTap: () => context.go(result == null && (g['source'] == 'play' || g['source'] == 'adaptive') ? '/play/${g['id']}' : '/games/${g['id']}'),
       ),
+    );
+  }
+}
+
+
+/// Import delle partite da Lichess o Chess.com: vengono analizzate in background.
+class ImportDialog extends ConsumerStatefulWidget {
+  const ImportDialog({super.key});
+
+  @override
+  ConsumerState<ImportDialog> createState() => _ImportDialogState();
+}
+
+class _ImportDialogState extends ConsumerState<ImportDialog> {
+  String _source = 'lichess';
+  late final _user = TextEditingController(
+    text: ref.read(authProvider).value?.lichessUsername ?? '',
+  );
+  double _max = 20;
+  bool _busy = false;
+  String? _message;
+
+  void _setSource(String s) {
+    final u = ref.read(authProvider).value;
+    setState(() {
+      _source = s;
+      _user.text = (s == 'lichess' ? u?.lichessUsername : u?.chesscomUsername) ?? _user.text;
+    });
+  }
+
+  Future<void> _import() async {
+    if (_user.text.trim().isEmpty) return;
+    setState(() {
+      _busy = true;
+      _message = null;
+    });
+    try {
+      final r = await ref.read(apiProvider).post('/games/import', {
+        'source': _source,
+        'username': _user.text.trim(),
+        'max': _max.round(),
+      }) as Map<String, dynamic>;
+      await ref.read(authProvider.notifier).refreshUser();
+      setState(() => _message = '${r['inserted']} partite nuove (su ${r['fetched']} trovate): l\'analisi è in corso.');
+    } on ApiException catch (e) {
+      setState(() => _message = switch (e.code) {
+            'user_not_found' => 'Utente non trovato',
+            'rate_limited' => 'Troppe richieste a Lichess: riprova tra qualche minuto',
+            _ => 'Errore: ${e.code}',
+          });
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Importa le tue partite'),
+      content: SizedBox(
+        width: 400,
+        child: Column(mainAxisSize: MainAxisSize.min, crossAxisAlignment: CrossAxisAlignment.stretch, children: [
+          SegmentedButton<String>(
+            segments: const [
+              ButtonSegment(value: 'lichess', label: Text('Lichess')),
+              ButtonSegment(value: 'chesscom', label: Text('Chess.com')),
+            ],
+            selected: {_source},
+            onSelectionChanged: (s) => _setSource(s.first),
+          ),
+          const SizedBox(height: 12),
+          TextField(controller: _user, decoration: const InputDecoration(labelText: 'Nome utente')),
+          const SizedBox(height: 12),
+          Text('Ultime ${_max.round()} partite'),
+          Slider(value: _max, min: 5, max: 100, divisions: 19, onChanged: (v) => setState(() => _max = v)),
+          const Text('Le partite reali mostrano le tue debolezze meglio di quelle contro il computer.',
+              style: TextStyle(fontSize: 12)),
+          if (_message != null) ...[const SizedBox(height: 8), Text(_message!)],
+        ]),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Chiudi')),
+        FilledButton(onPressed: _busy ? null : _import, child: _busy ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Importa')),
+      ],
     );
   }
 }

@@ -8,6 +8,7 @@ import 'features/auth/login_page.dart';
 import 'features/games/games_page.dart';
 import 'features/games/review_page.dart';
 import 'features/home/home_page.dart';
+import 'features/openings/openings_page.dart';
 import 'features/play/play_page.dart';
 import 'features/puzzle/puzzle_page.dart';
 import 'features/stats/stats_page.dart';
@@ -62,9 +63,10 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(path: '/storm', builder: (_, __) => const StormPage()),
           GoRoute(path: '/stats', builder: (_, __) => const StatsPage()),
           GoRoute(path: '/analysis', builder: (_, s) => AnalysisPage(key: ValueKey(s.uri.toString()), initialFen: fenFromUrl(s.uri.queryParameters['fen']))),
+          GoRoute(path: '/openings', builder: (_, __) => const OpeningsPage()),
           GoRoute(path: '/games', builder: (_, __) => const GamesPage()),
           GoRoute(path: '/games/:id', builder: (_, s) => ReviewPage(key: ValueKey(s.pathParameters['id']), gameId: s.pathParameters['id']!)),
-          GoRoute(path: '/play', builder: (_, __) => const PlayPage(key: ValueKey('new'))),
+          GoRoute(path: '/play', builder: (_, s) => PlayPage(key: ValueKey(s.uri.toString()), adaptive: s.uri.queryParameters['adaptive'] == '1')),
           GoRoute(path: '/play/:id', builder: (_, s) => PlayPage(key: ValueKey(s.pathParameters['id']), gameId: s.pathParameters['id'])),
           ...extraRoutes,
         ],
