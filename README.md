@@ -11,6 +11,7 @@ Requisiti: Flutter ≥ 3.35, backend `mcbe` in esecuzione su `http://localhost:3
 ```bash
 flutter pub get
 flutter run -d chrome --web-port 8080
+tool/build.sh && python3 tool/serve.py 8080   # build di prova, senza cache
 flutter test
 ```
 
@@ -19,7 +20,7 @@ flutter test
 L'app gira dietro lo stesso nginx dell'API, che la espone sotto `/api`:
 
 ```bash
-flutter build web --release --dart-define=API_URL=/api
+tool/build.sh /api
 # copiare build/web/ nella root nginx (vedi mcbe/deploy/nginx.conf.example)
 ```
 
